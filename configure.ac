@@ -255,6 +255,11 @@ AC_ARG_ENABLE(jack,
 		[enable jack support]),,
 	enable_jack=auto)
 
+AC_ARG_ENABLE(raop-output,
+	AS_HELP_STRING([--enable-raop-output],
+		[enables the RAOP output]),,
+	enable_raop_output=yes)
+
 AC_SYS_LARGEFILE
 
 AC_ARG_ENABLE(lastfm,
@@ -1419,6 +1424,17 @@ if test x$enable_shout = xyes; then
 fi
 AM_CONDITIONAL(HAVE_SHOUT, test x$enable_shout = xyes)
 
+dnl --------------------------------- RAOP ------------------------------------
+
+MPD_AUTO_PKG(raop_output, OPENSSL, [openssl],
+	[RAOP output], [OpenSSL not found])
+
+if test x$enable_raop_output = xyes; then
+	AC_DEFINE(ENABLE_RAOP_OUTPUT, 1, [Define for compiling RAOP support])
+fi
+
+AM_CONDITIONAL(ENABLE_RAOP_OUTPUT, test x$enable_raop_output = xyes)
+
 dnl --------------------------------- Solaris ---------------------------------
 
 if test x$enable_solaris_output = xauto; then
@@ -1470,6 +1486,7 @@ if
 	test x$enable_pulse = xno &&
 	test x$enable_recorder_output = xno &&
 	test x$enable_shout = xno &&
+	test x$enable_raop_output = xno &&
 	test x$enable_solaris_output = xno &&
 	test x$enable_winmm_output = xno; then
 
@@ -1627,6 +1644,7 @@ printf '\n\t'
 results(pulse, [PulseAudio])
 results(roar,[ROAR])
 results(shout, [SHOUTcast])
+results(raop_output, [RAOP])
 results(solaris_output, [Solaris])
 results(winmm_output, [WinMM])
 

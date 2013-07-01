@@ -75,6 +75,9 @@ const struct audio_output_plugin *const audio_output_plugins[] = {
 #ifdef HAVE_JACK
 	&jack_output_plugin,
 #endif
+#ifdef ENABLE_RAOP_OUTPUT
+	&raop_output_plugin,
+#endif
 #ifdef ENABLE_HTTPD_OUTPUT
 	&httpd_output_plugin,
 #endif

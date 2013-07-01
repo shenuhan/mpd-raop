@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003-2013 The Music Player Daemon Project
+ * Copyright (C) 2003-2011 The Music Player Daemon Project
  * http://www.musicpd.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,20 +17,21 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/** \file
- *
- * This header provides "extern" declarations for all mixer plugins.
- */
+#ifndef MPD_RAOP_OUTPUT_PLUGIN_H
+#define MPD_RAOP_OUTPUT_PLUGIN_H
 
-#ifndef MPD_MIXER_LIST_HXX
-#define MPD_MIXER_LIST_HXX
+#include <glib.h>
 
-extern const struct mixer_plugin software_mixer_plugin;
-extern const struct mixer_plugin alsa_mixer_plugin;
-extern const struct mixer_plugin oss_mixer_plugin;
-extern const struct mixer_plugin roar_mixer_plugin;
-extern const struct mixer_plugin pulse_mixer_plugin;
-extern const struct mixer_plugin raop_mixer_plugin;
-extern const struct mixer_plugin winmm_mixer_plugin;
+#include <stdbool.h>
+
+struct raop_data;
+
+extern const struct audio_output_plugin raop_output_plugin;
+
+bool
+raop_set_volume(struct raop_data *rd, unsigned volume, GError **error_r);
+
+int
+raop_get_volume(struct raop_data *rd);
 
 #endif

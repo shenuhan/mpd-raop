@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003-2013 The Music Player Daemon Project
+ * Copyright (C) 2003-2011 The Music Player Daemon Project
  * http://www.musicpd.org
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,20 +17,36 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/** \file
- *
- * This header provides "extern" declarations for all mixer plugins.
- */
+#ifndef MPD_UDP_SERVER_H
+#define MPD_UDP_SERVER_H
 
-#ifndef MPD_MIXER_LIST_HXX
-#define MPD_MIXER_LIST_HXX
+#include <glib.h>
 
-extern const struct mixer_plugin software_mixer_plugin;
-extern const struct mixer_plugin alsa_mixer_plugin;
-extern const struct mixer_plugin oss_mixer_plugin;
-extern const struct mixer_plugin roar_mixer_plugin;
-extern const struct mixer_plugin pulse_mixer_plugin;
-extern const struct mixer_plugin raop_mixer_plugin;
-extern const struct mixer_plugin winmm_mixer_plugin;
+#include <stddef.h>
+
+struct sockaddr;
+
+struct udp_server_handler {
+	/**
+	 * A datagram was received.
+	 */
+	void (*datagram)(int fd, const void *data, size_t length,
+			 const struct sockaddr *source_address,
+			 size_t source_address_length, void *ctx);
+};
+
+static inline GQuark
+udp_server_quark(void)
+{
+	return g_quark_from_static_string("udp_server");
+}
+
+struct udp_server *
+udp_server_new(unsigned port,
+	       const struct udp_server_handler *handler, void *ctx,
+	       GError **error_r);
+
+void
+udp_server_free(struct udp_server *udp);
 
 #endif

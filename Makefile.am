@@ -243,7 +243,10 @@ src_mpd_SOURCES = \
 	src/SongFilter.cxx src/SongFilter.hxx \
 	src/SongPointer.hxx \
 	src/PlaylistFile.cxx src/PlaylistFile.hxx \
-	src/Timer.cxx
+	src/Timer.cxx \
+	src/TcpConnect.cxx src/TcpConnect.hxx \
+	src/TcpSocket.cxx src/TcpSocket.hxx \
+	src/UdpServer.cxx src/UdpServer.hxx
 
 #
 # Windows resource file
@@ -757,7 +760,8 @@ OUTPUT_LIBS = \
 	$(JACK_LIBS) \
 	$(OPENAL_LIBS) \
 	$(PULSE_LIBS) \
-	$(SHOUT_LIBS)
+	$(SHOUT_LIBS) \
+	$(OPENSSL_LIBS)
 
 OUTPUT_API_SRC = \
 	src/OutputInternal.hxx \
@@ -882,6 +886,13 @@ liboutput_plugins_a_SOURCES += \
 libmixer_plugins_a_SOURCES += src/mixer/WinmmMixerPlugin.cxx
 endif
 
+if ENABLE_RAOP_OUTPUT
+liboutput_plugins_a_SOURCES += \
+	src/NtpServer.cxx src/NtpServer.h \
+	src/RtspClient.c src/RtspClient.h \
+	src/output/RaopOutputPlugin.c
+libmixer_plugins_a_SOURCES += src/mixer/RaopMixerPlugin.c
+endif
 
 #
 # Playlist plugins
@@ -1016,7 +1027,9 @@ noinst_PROGRAMS = \
 	test/run_output \
 	test/run_convert \
 	test/run_normalize \
-	test/software_volume
+	test/software_volume \
+	test/run_tcp_connect \
+	test/run_ntp_server
 
 if ENABLE_ARCHIVE
 noinst_PROGRAMS += test/visit_archive
@@ -1059,6 +1072,15 @@ test_DumpDatabase_SOURCES = test/DumpDatabase.cxx \
 	src/Tag.cxx src/TagNames.c src/TagPool.cxx src/TagSave.cxx \
 	src/SongFilter.cxx \
 	src/TextFile.cxx
+
+test_run_tcp_connect_LDADD = \
+	$(GLIB_LIBS)
+
+test_run_tcp_connect_SOURCES = test/run_tcp_connect.c \
+	src/IOThread.cxx src/IOThread.hxx \
+	src/fd_util.c \
+	src/resolver.c \
+	src/TcpConnect.cxx
 
 test_run_input_LDADD = \
 	$(INPUT_LIBS) \
@@ -1312,7 +1334,9 @@ test_run_output_SOURCES = test/run_output.cxx \
 	src/FilterConfig.cxx \
 	src/AudioCompress/compress.c \
 	src/ReplayGainInfo.cxx \
-	src/fd_util.c
+	src/fd_util.c \
+	src/UdpServer.cxx src/UdpServer.hxx \
+	src/TcpSocket.cxx src/TcpSocket.hxx
 
 test_read_mixer_LDADD = \
 	libpcm.a \
@@ -1381,6 +1405,14 @@ test_test_queue_priority_LDADD = \
 	libutil.a \
 	$(GLIB_LIBS)
 
+test_run_ntp_server_LDADD = \
+	$(GLIB_LIBS)
+test_run_ntp_server_SOURCES = test/run_ntp_server.c \
+	test/signals.c test/signals.h \
+	src/IOThread.cxx src/IOThread.hxx \
+	src/UdpServer.cxx src/UdpServer.hxx \
+	src/NtpServer.cxx src/NtpServer.hxx	
+	
 noinst_PROGRAMS += src/pcm/dsd2pcm/dsd2pcm
 
 src_pcm_dsd2pcm_dsd2pcm_SOURCES = \
