@@ -17,9 +17,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "tcp_socket.h"
+#include "TcpSocket.hxx"
 #include "fifo_buffer.h"
-#include "io_thread.h"
+#include "IOThread.hxx"
 #include "glib_socket.h"
 
 #include <assert.h>

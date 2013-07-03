@@ -18,12 +18,12 @@
  */
 
 #include "config.h"
-#include "raop_output_plugin.h"
+#include "RaopOutputPlugin.h"
 #include "output_api.h"
-#include "mixer_list.h"
+#include "MixerList.hxx"
 #include "fd_util.h"
-#include "ntp_server.h"
-#include "rtsp_client.h"
+#include "NtpServer.hxx"
+#include "RtspClient.hxx"
 #include "glib_compat.h"
 
 #include <glib.h>

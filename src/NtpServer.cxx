@@ -17,8 +17,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "ntp_server.h"
-#include "udp_server.h"
+#include "NtpServer.hxx"
+#include "UdpServer.hxx"
 
 #include <glib.h>
 #include <assert.h>

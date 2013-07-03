@@ -17,8 +17,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "udp_server.h"
-#include "io_thread.h"
+#include "UdpServer.hxx"
+#include "IOThread.hxx"
 #include "glib_socket.h"
 #include "gcc.h"
 

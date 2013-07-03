@@ -18,9 +18,9 @@
  */
 
 #include "config.h"
-#include "tcp_connect.h"
+#include "TcpConnect.hxx"
 #include "fd_util.h"
-#include "io_thread.h"
+#include "IOThread.hxx"
 #include "glib_compat.h"
 #include "glib_socket.h"
 

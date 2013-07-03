@@ -22,8 +22,8 @@
  */
 
 #include "config.h"
-#include "rtsp_client.h"
-#include "tcp_socket.h"
+#include "RtspClient.hxx"
+#include "TcpSocket.hxx"
 #include "fd_util.h"
 #include "glib_compat.h"
 
