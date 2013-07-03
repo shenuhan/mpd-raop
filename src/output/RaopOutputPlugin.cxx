@@ -18,7 +18,7 @@
  */
 
 #include "config.h"
-#include "RaopOutputPlugin.h"
+#include "RaopOutputPlugin.hxx"
 #include "output_api.h"
 #include "MixerList.hxx"
 #include "fd_util.h"
@@ -78,7 +78,7 @@ struct encrypt_data {
 
 /*********************************************************************/
 
-struct raop_data {
+struct RaopOutput {
 	struct audio_output base;
 
 	struct rtspcl_data *rtspcl;
@@ -88,7 +88,7 @@ struct raop_data {
 	struct sockaddr_in data_addr;
 
 	bool is_master;
-	struct raop_data *next;
+	RaopOutput *next;
 
 	unsigned volume;
 
@@ -115,7 +115,7 @@ struct control_data {
 
 // session
 struct raop_session_data {
-	struct raop_data *raop_list;
+	RaopOutput *raop_list;
 	struct ntp_server ntp;
 	struct control_data ctrl;
 	struct encrypt_data encrypt;
@@ -229,10 +229,10 @@ raop_session_new(GError **error_r)
 	return session;
 }
 
-static struct raop_data *
+static RaopOutput *
 new_raop_data(const struct config_param *param, GError **error_r)
 {
-	struct raop_data *ret = g_new(struct raop_data, 1);
+	RaopOutput *ret = g_new(RaopOutput, 1);
 	if (!ao_base_init(&ret->base, &raop_output_plugin, param, error_r)) {
 		g_free(ret);
 		return NULL;
@@ -432,7 +432,7 @@ get_time_for_rtp(struct play_state *state, struct timeval *tout)
  * Send a control command
  */
 static bool
-send_control_command(struct control_data *ctrl, struct raop_data *rd,
+send_control_command(struct control_data *ctrl, RaopOutput *rd,
 		     struct play_state *state,
 		     GError **error_r)
 {
@@ -599,7 +599,7 @@ wrap_pcm(unsigned char *buffer, int bsize, int *size, unsigned char *inData, int
 }
 
 static bool
-raopcl_connect(struct raop_data *rd, GError **error_r)
+raopcl_connect(RaopOutput *rd, GError **error_r)
 {
 	unsigned char buf[4 + 8 + 16];
 	char sid[16];
@@ -701,7 +701,7 @@ send_audio_data(int fd, GError **error_r)
 {
 	int i = 0;
 	struct timeval current_time, rtp_time;
-	struct raop_data *rd = raop_session->raop_list;
+	RaopOutput *rd = raop_session->raop_list;
 
 	get_time_for_rtp(&raop_session->play_state, &rtp_time);
 	gettimeofday(&current_time, NULL);
@@ -749,7 +749,7 @@ raop_output_init(const struct config_param *param, GError **error_r)
 		return NULL;
 	}
 
-	struct raop_data *rd;
+	RaopOutput *rd;
 
 	rd = new_raop_data(param, error_r);
 	if (rd == NULL)
@@ -762,7 +762,7 @@ raop_output_init(const struct config_param *param, GError **error_r)
 }
 
 static bool
-raop_set_volume_local(struct raop_data *rd, int volume, GError **error_r)
+raop_set_volume_local(RaopOutput *rd, int volume, GError **error_r)
 {
 	char vol_str[128];
 	sprintf(vol_str, "volume: %d.000000\r\n", volume);
@@ -773,7 +773,7 @@ raop_set_volume_local(struct raop_data *rd, int volume, GError **error_r)
 static void
 raop_output_finish(struct audio_output *ao)
 {
-	struct raop_data *rd = (struct raop_data *)ao;
+	RaopOutput *rd = (RaopOutput *)ao;
 
 	g_mutex_free(rd->control_mutex);
 	ao_base_finish(&rd->base);
@@ -789,13 +789,13 @@ raop_output_finish(struct audio_output *ao)
 #define RAOP_VOLUME_MAX 0
 
 int
-raop_get_volume(struct raop_data *rd)
+raop_output_get_volume(RaopOutput *raop);
 {
-	return rd->volume;
+	return raop->volume;
 }
 
 bool
-raop_set_volume(struct raop_data *rd, unsigned volume, GError **error_r)
+raop_set_volume(RaopOutput *rd, unsigned volume)
 {
 	int raop_volume;
 	bool rval;
@@ -820,7 +820,7 @@ raop_output_cancel(struct audio_output *ao)
 {
 	//flush
 	struct key_data kd;
-	struct raop_data *rd = (struct raop_data *)ao;
+	RaopOutput *rd = (RaopOutput *)ao;
 	int flush_diff = 1;
 
 	rd->started = 0;
@@ -843,7 +843,7 @@ raop_output_cancel(struct audio_output *ao)
 static bool
 raop_output_pause(struct audio_output *ao)
 {
-	struct raop_data *rd = (struct raop_data *)ao;
+	RaopOutput *rd = (RaopOutput *)ao;
 
 	rd->paused = true;
 	return true;
@@ -853,12 +853,12 @@ raop_output_pause(struct audio_output *ao)
  * Remove the output from the session's list.  Caller must not lock the raop_session_mutex.
  */
 static void
-raop_output_remove(struct raop_data *rd)
+raop_output_remove(RaopOutput *rd)
 {
 	g_static_mutex_lock(&raop_session_mutex);
 	
-	struct raop_data *iter = raop_session->raop_list;
-	struct raop_data *prev = NULL;
+	RaopOutput *iter = raop_session->raop_list;
+	RaopOutput *prev = NULL;
 
 	while (iter) {
 		if (iter == rd) {
@@ -890,7 +890,7 @@ static void
 raop_output_close(struct audio_output *ao)
 {
 	//teardown
-	struct raop_data *rd = (struct raop_data *)ao;
+	RaopOutput *rd = (RaopOutput *)ao;
 
 	raop_output_remove(rd);
 
@@ -909,7 +909,7 @@ static bool
 raop_output_open(struct audio_output *ao, struct audio_format *audio_format, GError **error_r)
 {
 	//setup, etc.
-	struct raop_data *rd = (struct raop_data *)ao;
+	RaopOutput *rd = (RaopOutput *)ao;
 
 -	g_mutex_lock(raop_session->list_mutex);
 -	if (raop_session->raop_list == NULL) {
@@ -955,7 +955,7 @@ raop_output_play(struct audio_output *ao, const void *chunk, size_t size,
 		 GError **error_r)
 {
 	//raopcl_send_sample
-	struct raop_data *rd = (struct raop_data *)ao;
+	RaopOutput *rd = (RaopOutput *)ao;
 	size_t rval = 0, orig_size = size;
 
 	rd->paused = false;
@@ -987,7 +987,7 @@ raop_output_play(struct audio_output *ao, const void *chunk, size_t size,
 
 		if (!raop_session->play_state.playing ||
 		    raop_session->play_state.seq_num % (44100 / NUMSAMPLES + 1) == 0) {
-			struct raop_data *iter;
+			RaopOutput *iter;
 			g_mutex_lock(raop_session->list_mutex);
 			if (!raop_session->play_state.playing) {
 				gettimeofday(&raop_session->play_state.start_time,NULL);

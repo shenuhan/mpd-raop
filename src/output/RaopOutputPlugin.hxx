@@ -24,14 +24,14 @@
 
 #include <stdbool.h>
 
-struct raop_data;
+struct RaopOutput;
 
 extern const struct audio_output_plugin raop_output_plugin;
 
-bool
-raop_set_volume(struct raop_data *rd, unsigned volume, GError **error_r);
-
 int
-raop_get_volume(struct raop_data *rd);
+raop_output_get_volume(RaopOutput *raop);
+
+bool
+raop_output_set_volume(RaopOutput *raop, unsigned volume);
 
 #endif

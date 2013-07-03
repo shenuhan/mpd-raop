@@ -35,7 +35,7 @@ static Mixer *
 raop_mixer_init(void *ao, G_GNUC_UNUSED const struct config_param *param,
 		 G_GNUC_UNUSED GError **error_r)
 {
-	return new RaopMixer(RoarOutput * ao);
+	return new RaopMixer(RaopOutput * ao);
 }
 
 static void
@@ -47,7 +47,7 @@ raop_mixer_finish(Mixer *data)
 }
 
 static int
-roar_mixer_get_volume(Mixer *mixer, gcc_unused GError **error_r)
+raop_mixer_get_volume(Mixer *mixer, gcc_unused GError **error_r)
 {
 	RaopMixer *self = (RaopMixer *)mixer;
 	return raop_output_get_volume(self->self);
@@ -57,12 +57,16 @@ static bool
 raop_mixer_set_volume(Mixer *mixer, unsigned volume, GError **error_r)
 {
 	RaopMixer *self = (RaopMixer *)mixer;
-	return raop_set_volume(self->self, volume, error_r);
+	return raop_set_volume(self->self, volume);
 }
 
 const struct mixer_plugin raop_mixer_plugin = {
-	.init = raop_mixer_init,
-	.finish = raop_mixer_finish,
-	.get_volume = raop_mixer_get_volume,
-	.set_volume = raop_mixer_set_volume,
+	raop_mixer_init,
+	raop_mixer_finish,
+	nullptr,
+	nullptr,
+	raop_mixer_get_volume,
+	raop_mixer_set_volume,
+	false,
 };
+
