@@ -888,10 +888,10 @@ endif
 
 if ENABLE_RAOP_OUTPUT
 liboutput_plugins_a_SOURCES += \
-	src/NtpServer.cxx src/NtpServer.h \
-	src/RtspClient.c src/RtspClient.h \
-	src/output/RaopOutputPlugin.c
-libmixer_plugins_a_SOURCES += src/mixer/RaopMixerPlugin.c
+	src/NtpServer.cxx src/NtpServer.hxx \
+	src/RtspClient.cxx src/RtspClient.hxx \
+	src/output/RaopOutputPlugin.cxx
+libmixer_plugins_a_SOURCES += src/mixer/RaopMixerPlugin.cxx
 endif
 
 #
