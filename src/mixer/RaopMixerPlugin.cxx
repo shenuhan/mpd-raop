@@ -19,44 +19,45 @@
 
 #include "../output/RaopOutputPlugin.hxx"
 #include "OutputPlugin.hxx"
-#include "mixer_api.h"
+#include "MixerInternal.hxx"
 
-struct raop_mixer_plugin {
-	struct mixer base;
-	struct raop_data *rd;
+struct RaopMixer final : public Mixer {
+	/** the base mixer class */
+	RaopOutput *self;
+
+	RaopMixer(RaopOutput *_output)
+		:Mixer(raop_mixer_plugin),
+		self(_output) {}
 };
 
-static struct mixer *
+
+static Mixer *
 raop_mixer_init(void *ao, G_GNUC_UNUSED const struct config_param *param,
 		 G_GNUC_UNUSED GError **error_r)
 {
-	struct raop_mixer_plugin *rm = g_new(struct raop_mixer_plugin, 1);
-	rm->rd = (struct raop_data *) ao;
-	mixer_init(&rm->base, &raop_mixer_plugin);
-
-	return &rm->base;
+	return new RaopMixer(RoarOutput * ao);
 }
 
 static void
-raop_mixer_finish(struct mixer *data)
+raop_mixer_finish(Mixer *data)
 {
-	struct raop_mixer_plugin *rm = (struct raop_mixer_plugin *) data;
+	RaopMixer *self = (RaopMixer *) data;
 
-	g_free(rm);
+	delete self;
 }
 
 static int
-raop_mixer_get_volume(struct mixer *mixer, G_GNUC_UNUSED GError **error_r)
+roar_mixer_get_volume(Mixer *mixer, gcc_unused GError **error_r)
 {
-	struct raop_mixer_plugin *rm = (struct raop_mixer_plugin *)mixer;
-	return raop_get_volume(rm->rd);
+	RaopMixer *self = (RaopMixer *)mixer;
+	return raop_output_get_volume(self->self);
 }
 
 static bool
-raop_mixer_set_volume(struct mixer *mixer, unsigned volume, GError **error_r)
+raop_mixer_set_volume(Mixer *mixer, unsigned volume, GError **error_r)
 {
-	struct raop_mixer_plugin *rm = (struct raop_mixer_plugin *)mixer;
-	return raop_set_volume(rm->rd, volume, error_r);
+	RaopMixer *self = (RaopMixer *)mixer;
+	return raop_set_volume(self->self, volume, error_r);
 }
 
 const struct mixer_plugin raop_mixer_plugin = {
