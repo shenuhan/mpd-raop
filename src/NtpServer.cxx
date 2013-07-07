@@ -101,7 +101,7 @@ ntp_server_datagram(int fd, const void *data, size_t num_bytes,
 }
 
 static const struct udp_server_handler ntp_server_handler = {
-	.datagram = ntp_server_datagram,
+	ntp_server_datagram,
 };
 
 void

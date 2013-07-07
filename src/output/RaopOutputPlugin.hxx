@@ -32,6 +32,6 @@ int
 raop_output_get_volume(RaopOutput *raop);
 
 bool
-raop_output_set_volume(RaopOutput *raop, unsigned volume);
+raop_output_set_volume(RaopOutput *raop, unsigned volume, GError **error_r);
 
 #endif

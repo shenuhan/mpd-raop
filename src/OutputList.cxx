@@ -33,6 +33,7 @@
 #include "output/PulseOutputPlugin.hxx"
 #include "output/RecorderOutputPlugin.hxx"
 #include "output/RoarOutputPlugin.hxx"
+#include "output/RaopOutputPlugin.hxx"
 #include "output/ShoutOutputPlugin.hxx"
 #include "output/SolarisOutputPlugin.hxx"
 #include "output/WinmmOutputPlugin.hxx"

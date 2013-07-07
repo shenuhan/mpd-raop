@@ -17,15 +17,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "config.h"
-#include "RaopOutputPlugin.hxx"
-#include "output_api.h"
-#include "MixerList.hxx"
-#include "fd_util.h"
-#include "NtpServer.hxx"
-#include "RtspClient.hxx"
-#include "glib_compat.h"
-
 #include <glib.h>
 #include <unistd.h>
 #include <sys/time.h>
@@ -34,6 +25,15 @@
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
 #include <openssl/engine.h>
+
+#include "config.h"
+#include "RaopOutputPlugin.hxx"
+#include "output_api.h"
+#include "MixerList.hxx"
+#include "fd_util.h"
+#include "NtpServer.hxx"
+#include "RtspClient.hxx"
+#include "glib_compat.h"
 
 #ifndef WIN32
 #include <arpa/inet.h>
@@ -137,7 +137,7 @@ struct raop_session_data {
 
 static GStaticMutex raop_session_mutex = G_STATIC_MUTEX_INIT;	// need a static mutex to guard construction of raop_session
 static struct raop_session_data *raop_session = NULL;
- 
+
 static int open_udp_socket(char *hostname, unsigned short *port, GError **error_r);
 
 /**
@@ -789,13 +789,13 @@ raop_output_finish(struct audio_output *ao)
 #define RAOP_VOLUME_MAX 0
 
 int
-raop_output_get_volume(RaopOutput *raop);
+raop_output_get_volume(RaopOutput *raop)
 {
 	return raop->volume;
 }
 
 bool
-raop_set_volume(RaopOutput *rd, unsigned volume)
+raop_set_volume(RaopOutput *rd, unsigned volume, GError **error_r)
 {
 	int raop_volume;
 	bool rval;
@@ -856,7 +856,7 @@ static void
 raop_output_remove(RaopOutput *rd)
 {
 	g_static_mutex_lock(&raop_session_mutex);
-	
+
 	RaopOutput *iter = raop_session->raop_list;
 	RaopOutput *prev = NULL;
 
@@ -877,13 +877,13 @@ raop_output_remove(RaopOutput *rd)
 		prev = iter;
 		iter = iter->next;
 	}
-	
+
 	if (raop_session->raop_list == NULL) {
 		ntp_server_close(&raop_session->ntp);
 		close(raop_session->ctrl.fd);
 		raop_session->ctrl.fd = -1;
 	}
-	g_mutex_unlock(raop_session->list_mutex);
+	g_static_mutex_unlock(&raop_session_mutex);
 }
 
 static void
@@ -911,31 +911,25 @@ raop_output_open(struct audio_output *ao, struct audio_format *audio_format, GEr
 	//setup, etc.
 	RaopOutput *rd = (RaopOutput *)ao;
 
--	g_mutex_lock(raop_session->list_mutex);
--	if (raop_session->raop_list == NULL) {
--		// first raop, need to initialize session data
--		unsigned short myport = 0;
--		raop_session->raop_list = rd;
--		rd->is_master = true;
-+	// add this raop to the global raop_session, guarded using the raop_session_mutex
+	// add this raop to the global raop_session, guarded using the raop_session_mutex
 	{
 		g_static_mutex_lock(&raop_session_mutex);
- 
+
 		// create the raop session on demand
 		if (raop_session == NULL && (raop_session = raop_session_new(error_r)) == NULL)
 		{
 			g_static_mutex_unlock(&raop_session_mutex);
  			return false;
  		}
-	
+
 		// first raop is set as master, add to list
 		rd->is_master = raop_session->raop_list == NULL;
 		rd->next = raop_session->raop_list;
 		raop_session->raop_list = rd;
- 
+
 		g_static_mutex_unlock(&raop_session_mutex);
 	}
-	
+
 	audio_format->format = SAMPLE_FORMAT_S16;
 	if (!raopcl_connect(rd, error_r)) {
 		raop_output_remove(rd);
@@ -988,7 +982,7 @@ raop_output_play(struct audio_output *ao, const void *chunk, size_t size,
 		if (!raop_session->play_state.playing ||
 		    raop_session->play_state.seq_num % (44100 / NUMSAMPLES + 1) == 0) {
 			RaopOutput *iter;
-			g_mutex_lock(raop_session->list_mutex);
+			g_static_mutex_lock(&raop_session_mutex);
 			if (!raop_session->play_state.playing) {
 				gettimeofday(&raop_session->play_state.start_time,NULL);
 			}
@@ -1043,13 +1037,19 @@ raop_output_play(struct audio_output *ao, const void *chunk, size_t size,
 }
 
 const struct audio_output_plugin raop_output_plugin = {
-	.name = "raop",
-	.init = raop_output_init,
-	.finish = raop_output_finish,
-	.open = raop_output_open,
-	.play = raop_output_play,
-	.cancel = raop_output_cancel,
-	.pause = raop_output_pause,
-	.close = raop_output_close,
-	.mixer_plugin = &raop_mixer_plugin,
+	"raop",
+	nullptr,
+	raop_output_init,
+	raop_output_finish,
+	nullptr,
+	nullptr,
+	raop_output_open,
+	raop_output_close,
+	nullptr,
+	nullptr,
+	raop_output_play,
+	nullptr,
+	raop_output_cancel,
+	raop_output_pause,
 };
+

@@ -17,10 +17,13 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include "config.h"
 #include "TcpSocket.hxx"
-#include "fifo_buffer.h"
+#include "util/fifo_buffer.h"
 #include "IOThread.hxx"
 #include "glib_socket.h"
+#include "Main.hxx"
+#include "event/Loop.hxx"
 
 #include <assert.h>
 #include <string.h>
@@ -58,9 +61,9 @@ tcp_socket_schedule_read(struct tcp_socket *s)
 		return;
 
 	s->in_source = g_io_create_watch(s->channel,
-					 G_IO_IN|G_IO_ERR|G_IO_HUP);
+					 (GIOCondition)(G_IO_IN|G_IO_ERR|G_IO_HUP));
 	g_source_set_callback(s->in_source, (GSourceFunc)tcp_event, s, NULL);
-	g_source_attach(s->in_source, io_thread_context());
+	g_source_attach(s->in_source, main_loop->GetContext());
 }
 
 static void
@@ -85,7 +88,7 @@ tcp_socket_schedule_write(struct tcp_socket *s)
 
 	s->out_source = g_io_create_watch(s->channel, G_IO_OUT);
 	g_source_set_callback(s->out_source, (GSourceFunc)tcp_event, s, NULL);
-	g_source_attach(s->out_source, io_thread_context());
+	g_source_attach(s->out_source, main_loop->GetContext());
 }
 
 static void
@@ -127,7 +130,7 @@ tcp_socket_close(struct tcp_socket *s)
 static gpointer
 tcp_socket_close_callback(gpointer data)
 {
-	struct tcp_socket *s = data;
+	struct tcp_socket *s = (struct tcp_socket *)data;
 
 	g_mutex_lock(s->mutex);
 	tcp_socket_close(s);
@@ -183,7 +186,7 @@ tcp_in_event(struct tcp_socket *s)
 	gsize bytes_read;
 	GError *error = NULL;
 	GIOStatus status = g_io_channel_read_chars(s->channel,
-						   p, max_length,
+						   (gchar*)p, max_length,
 						   &bytes_read, &error);
 	switch (status) {
 	case G_IO_STATUS_NORMAL:
@@ -237,7 +240,7 @@ tcp_out_event(struct tcp_socket *s)
 
 	gsize bytes_written;
 	GError *error = NULL;
-	GIOStatus status = g_io_channel_write_chars(s->channel, p, length,
+	GIOStatus status = g_io_channel_write_chars(s->channel, (gchar*)p, length,
 						    &bytes_written, &error);
 	switch (status) {
 	case G_IO_STATUS_NORMAL:
@@ -275,7 +278,7 @@ static gboolean
 tcp_event(G_GNUC_UNUSED GIOChannel *source, GIOCondition condition,
 	  gpointer data)
 {
-	struct tcp_socket *s = data;
+	struct tcp_socket *s = (struct tcp_socket *) data;
 
 	assert(source == s->channel);
 

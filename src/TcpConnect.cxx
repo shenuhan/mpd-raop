@@ -23,6 +23,8 @@
 #include "IOThread.hxx"
 #include "glib_compat.h"
 #include "glib_socket.h"
+#include "Main.hxx"
+#include "event/Loop.hxx"
 
 #include <assert.h>
 #include <errno.h>
@@ -61,10 +63,10 @@ tcp_connect_event(G_GNUC_UNUSED GIOChannel *source,
 		  G_GNUC_UNUSED GIOCondition condition,
 		  gpointer data)
 {
-	struct tcp_connect *c = data;
+	struct tcp_connect *c = (struct tcp_connect *)data;
 
 	assert(c->source != NULL);
-	assert(c->timeout_source != NULL);
+	//assert(c->timeout_source != NULL);
 
 	/* clear the socket source */
 	g_source_unref(c->source);
@@ -104,7 +106,7 @@ tcp_connect_event(G_GNUC_UNUSED GIOChannel *source,
 static gboolean
 tcp_connect_timeout(gpointer data)
 {
-	struct tcp_connect *c = data;
+	struct tcp_connect *c = (struct tcp_connect *)data;
 
 	assert(c->source != NULL);
 	assert(c->timeout_source != NULL);
@@ -127,23 +129,20 @@ tcp_connect_timeout(gpointer data)
 static gpointer
 tcp_connect_init(gpointer data)
 {
-	struct tcp_connect *c = data;
+	struct tcp_connect *c = (struct tcp_connect *)data;
 
 	/* create a connect source */
 	GIOChannel *channel = g_io_channel_new_socket(c->fd);
 	c->source = g_io_create_watch(channel, G_IO_OUT);
 	g_io_channel_unref(channel);
-
-	g_source_set_callback(c->source, (GSourceFunc)tcp_connect_event, c,
-			      NULL);
-	g_source_attach(c->source, io_thread_context());
+	g_source_attach(c->source, main_loop->GetContext());
 
 	/* create a timeout source */
-	if (c->timeout_ms > 0)
-		c->timeout_source =
-			io_thread_timeout_add(c->timeout_ms,
-					      tcp_connect_timeout, c);
-
+	if (c->timeout_ms > 0) {
+		c->timeout_source = g_timeout_source_new(c->timeout_ms);
+		g_source_set_callback(c->timeout_source, tcp_connect_timeout, c, NULL);
+		g_source_attach(c->timeout_source, main_loop->GetContext());
+	}
 	return NULL;
 }
 
@@ -207,7 +206,7 @@ tcp_connect_address(const struct sockaddr *address, size_t address_length,
 static gpointer
 tcp_connect_cancel_callback(gpointer data)
 {
-	struct tcp_connect *c = data;
+	struct tcp_connect *c = (struct tcp_connect *)data;
 
 	assert((c->source == NULL) == (c->timeout_source == NULL));
 

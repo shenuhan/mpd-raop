@@ -232,14 +232,14 @@ static void
 rtsp_client_flush_received(struct rtspcl_data *rtspcld)
 {
 	char *line;
-	while ((line = g_queue_pop_head(rtspcld->received_lines)) != NULL)
+	while ((line = (char*)g_queue_pop_head(rtspcld->received_lines)) != NULL)
 		g_free(line);
 }
 
 static size_t
 rtsp_client_socket_data(const void *_data, size_t length, void *ctx)
 {
-	struct rtspcl_data *rtspcld = ctx;
+	struct rtspcl_data *rtspcld = (struct rtspcl_data *) ctx;
 
 	g_mutex_lock(rtspcld->mutex);
 
@@ -250,8 +250,8 @@ rtsp_client_socket_data(const void *_data, size_t length, void *ctx)
 
 	const bool was_empty = g_queue_is_empty(rtspcld->received_lines);
 	bool added = false;
-	const char *data = _data, *end = data + length, *p = data, *eol;
-	while ((eol = memchr(p, '\n', end - p)) != NULL) {
+	const char *data = (char *)_data, *end = data + length, *p = data, *eol;
+	while ((eol = (char*)memchr(p, '\n', end - p)) != NULL) {
 		const char *next = eol + 1;
 
 		if (rtspcld->received_lines->length < 64) {
@@ -277,7 +277,7 @@ rtsp_client_socket_data(const void *_data, size_t length, void *ctx)
 static void
 rtsp_client_socket_error(GError *error, void *ctx)
 {
-	struct rtspcl_data *rtspcld = ctx;
+	struct rtspcl_data *rtspcld = (struct rtspcl_data *)ctx;
 
 	g_warning("%s", error->message);
 	g_error_free(error);
@@ -300,7 +300,7 @@ rtsp_client_socket_error(GError *error, void *ctx)
 static void
 rtsp_client_socket_disconnected(void *ctx)
 {
-	struct rtspcl_data *rtspcld = ctx;
+	struct rtspcl_data *rtspcld = (struct rtspcl_data *)ctx;
 
 	g_mutex_lock(rtspcld->mutex);
 
@@ -318,9 +318,9 @@ rtsp_client_socket_disconnected(void *ctx)
 }
 
 static const struct tcp_socket_handler rtsp_client_socket_handler = {
-	.data = rtsp_client_socket_data,
-	.error = rtsp_client_socket_error,
-	.disconnected = rtsp_client_socket_disconnected,
+	rtsp_client_socket_data,
+	rtsp_client_socket_error,
+	rtsp_client_socket_disconnected,
 };
 
 bool
@@ -432,7 +432,7 @@ read_line(struct rtspcl_data *rtspcld, char *line, int maxlen,
 		if (!g_queue_is_empty(rtspcld->received_lines)) {
 			/* success, copy to buffer */
 
-			char *p = g_queue_pop_head(rtspcld->received_lines);
+			char *p = (char *)g_queue_pop_head(rtspcld->received_lines);
 			g_mutex_unlock(rtspcld->mutex);
 
 			g_strlcpy(line, p, maxlen);
@@ -563,7 +563,7 @@ exec_request(struct rtspcl_data *rtspcld, const char *cmd,
 				++j;
 
 			dsize += strlen(j);
-			new_kd->data = g_realloc(new_kd->data, dsize);
+			new_kd->data = (char*)g_realloc(new_kd->data, dsize);
 			strcat(new_kd->data, j);
 			continue;
 		}

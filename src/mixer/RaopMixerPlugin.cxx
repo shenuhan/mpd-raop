@@ -32,10 +32,10 @@ struct RaopMixer final : public Mixer {
 
 
 static Mixer *
-raop_mixer_init(void *ao, G_GNUC_UNUSED const struct config_param *param,
-		 G_GNUC_UNUSED GError **error_r)
+raop_mixer_init(void *ao, gcc_unused const struct config_param *param,
+		 gcc_unused GError **error_r)
 {
-	return new RaopMixer(RaopOutput * ao);
+	return new RaopMixer((RaopOutput *) ao);
 }
 
 static void
@@ -57,7 +57,7 @@ static bool
 raop_mixer_set_volume(Mixer *mixer, unsigned volume, GError **error_r)
 {
 	RaopMixer *self = (RaopMixer *)mixer;
-	return raop_set_volume(self->self, volume);
+	return raop_output_set_volume(self->self, volume, error_r);
 }
 
 const struct mixer_plugin raop_mixer_plugin = {
