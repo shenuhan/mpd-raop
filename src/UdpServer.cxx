@@ -17,8 +17,11 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include "config.h"
 #include "UdpServer.hxx"
 #include "IOThread.hxx"
+#include "Main.hxx"
+#include "event/Loop.hxx"
 #include "glib_socket.h"
 #include "gcc.h"
 
@@ -57,7 +60,7 @@ udp_in_event(G_GNUC_UNUSED GIOChannel *source,
 	     G_GNUC_UNUSED GIOCondition condition,
 	     gpointer data)
 {
-	struct udp_server *udp = data;
+	struct udp_server *udp = (struct udp_server*)data;
 
 	struct sockaddr_storage address_storage;
 	struct sockaddr *address = (struct sockaddr *)&address_storage;
@@ -91,16 +94,13 @@ udp_server_new(unsigned port,
 		return NULL;
 	}
 
-	const struct sockaddr_in address = {
-		.sin_family = AF_INET,
-		.sin_addr = {
-			.s_addr = htonl(INADDR_ANY),
-		},
-		.sin_port = htons(port),
+	struct sockaddr_in address;
+		address.sin_family = AF_INET,
+		address.sin_addr.s_addr = htonl(INADDR_ANY);
+		address.sin_port = htons(port);
 #if defined(__linux__) && !GCC_CHECK_VERSION(4, 2)
-		.sin_zero = { 0 },
+		addresS.sin_zero = { 0 };²
 #endif
-	};
 
 	if (bind(fd, (const struct sockaddr *)&address, sizeof(address)) < 0) {
 		g_set_error(error_r, udp_server_quark(), errno,
@@ -124,7 +124,7 @@ udp_server_new(unsigned port,
 	udp->source = g_io_create_watch(udp->channel, G_IO_IN);
 	g_source_set_callback(udp->source, (GSourceFunc)udp_in_event, udp,
 			      NULL);
-	g_source_attach(udp->source, io_thread_context());
+	g_source_attach(udp->source, main_loop->GetContext());
 
 	return udp;
 }
